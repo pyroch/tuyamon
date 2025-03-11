@@ -1,0 +1,11 @@
+services:
+  tuya-exporter:
+    image: docker.io/library/tuya-prometheus-exporter
+    expose:
+       - 8757
+    restart: always
+
+networks:
+  default:
+    name: net
+    external: true
