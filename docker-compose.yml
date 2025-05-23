@@ -1,11 +1,8 @@
 services:
   tuya-exporter:
-    image: docker.io/library/tuya-prometheus-exporter
-    expose:
-       - 8757
+    image: ghcr.io/pyroch/tuyamon:latest
+    ports:
+       - 8757:8757
+    volumes:
+      - ./config.json:/app/config.json # REQUIRED
     restart: always
-
-networks:
-  default:
-    name: net
-    external: true

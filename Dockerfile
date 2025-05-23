@@ -1,5 +1,5 @@
 # Базовый образ на основе Python 3.13.2
-FROM python:3.13.2-slim
+FROM python:3.13.3-slim
 
 # Установка рабочей директории внутри контейнера
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копирование исходного кода приложения в контейнер
-COPY . .
+COPY tuya_exporter.py .
 
 # Команда для запуска приложения
-CMD ["python", "tuya_exporter.py"]
+CMD ["python", "-u", "tuya_exporter.py"]

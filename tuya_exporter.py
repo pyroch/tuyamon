@@ -1,4 +1,5 @@
 import json
+import signal
 from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST, CollectorRegistry
 from wsgiref.simple_server import make_server
 import tinytuya
@@ -90,10 +91,21 @@ def metrics_app(environ, start_response):
     start_response("404 Not Found", [("Content-type", "text/plain")])
     return [b"Not Found"]
 
+def handle_signal(signum, frame):
+    print(f"Received shutdown signal, exiting...")
+    exit(0)
+
 if __name__ == "__main__":
     print(f"Starting server on http://localhost:{EXPORTER_PORT}/metrics")
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
+
     start_background_updater()
     try:
-        make_server("", EXPORTER_PORT, metrics_app).serve_forever()
+        server = make_server("", EXPORTER_PORT, metrics_app)
+        print("Serving on port", EXPORTER_PORT)
+        server.serve_forever()
     except KeyboardInterrupt:
         print("Shutting down server.")
+    finally:
+        server.shutdown()

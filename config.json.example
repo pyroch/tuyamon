@@ -1,0 +1,14 @@
+[
+    {
+        "ip": "192.168.1.10",
+        "device_id": "deviceid1",
+        "local_key": "localkey",
+        "name": "Socket1"
+    },
+    {
+        "ip": "192.168.1.11",
+        "device_id": "deviceid2",
+        "local_key": "localkey2",
+        "name": "Socket2"
+    }
+]
