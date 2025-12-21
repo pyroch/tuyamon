@@ -90,38 +90,51 @@ def update_device_metrics(device_config):
     name = device_config["name"]
     key = device_config["key"]
     product_name = device_config.get("product_name", "")
+
     if product_name != "Smart plug":
         return
     if ip == "":
         return
 
-    versions = [device_config.get("version")] if device_config.get("version") else [3.5, 3.4, 3.3]
-
     device = tinytuya.OutletDevice(id, ip, key)
     device.set_socketTimeout(3)
 
-    # Get Working version
-    for v in versions:
-        try:
-            device.set_version(float(v))
-            device.status()
-            break
-        except Exception:
-            continue
+    # Определяем версию протокола
+    versions = [device_config.get("version")] if device_config.get("version") else [3.5, 3.4, 3.3]
 
     while True:
         try:
-            data = device.status()
-            if "dps" in data:
-                device_metrics[id] = {
-                    "ip": ip,
-                    "name": name,
-                    "current": float(data["dps"].get("18", 0)) / 1000.0,
-                    "power": float(data["dps"].get("19", 0)) / 10.0,
-                    "voltage": float(data["dps"].get("20", 0)) / 10.0,
-                }
+            # Находим рабочую версию
+            connected = False
+            for version in versions:
+                try:
+                    device.set_version(float(version))
+                    # Обновляем DPS для получения актуальных данных
+                    device.updatedps(["18", "19", "20"])
+                    payload = device.generate_payload(tinytuya.UPDATEDPS)
+                    device.send(payload)
+
+                    data = device.status()
+                    if "Error" not in data and "dps" in data:
+                        device_metrics[id] = {
+                            "ip": ip,
+                            "name": name,
+                            "current": float(data["dps"].get("18", 0)) / 1000.0,
+                            "power": float(data["dps"].get("19", 0)) / 10.0,
+                            "voltage": float(data["dps"].get("20", 0)) / 10.0,
+                        }
+                        connected = True
+                        break
+                except Exception:
+                    continue
+
+            if not connected:
+                raise Exception(f"Failed to connect to device {id}")
+
         except Exception as e:
             print(f"[{id}] error: {e}")
+            if id not in device_metrics:
+                device_metrics[id] = {}
             device_metrics[id].update({
                 "current": float("nan"),
                 "power": float("nan"),
