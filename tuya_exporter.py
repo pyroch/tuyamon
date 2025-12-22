@@ -21,11 +21,11 @@ POLL_INTERVAL = 5  # seconds
 # =========================
 # RUN TINYTUYA WIZARD (AUTO)
 # =========================
-def run_wizard(cfg):
+def run_wizard():
     print("Running tinytuya wizard automatically...")
 
     result = subprocess.run(
-        [sys.executable, '-m', 'tinytuya', 'wizard', '-force', '10.10.1.0/24', '-yes'],
+        [sys.executable, '-m', 'tinytuya', 'wizard', '-force', '10.10.1.0/24', '-yes', '60'],
         capture_output=True,
         text=True
     )
@@ -38,12 +38,9 @@ def run_wizard(cfg):
 # LOAD CONFIG / BOOTSTRAP
 # =========================
 if os.path.exists(TINYTUTYA_CONFIG):
-    with open(TINYTUTYA_CONFIG, "r", encoding="utf-8") as f:
-        cfg = json.load(f)
-
     # если devices.json нет — запускаем wizard
     if not os.path.exists(DEVICES_FILE):
-        run_wizard(cfg)
+        run_wizard()
 
 if not os.path.exists(DEVICES_FILE):
     raise RuntimeError("devices.json not found")
@@ -64,16 +61,16 @@ metrics = {
 device_metrics = {}
 
 for d in DEVICE_CONFIGS:
-    device_id = d.get("id")
+    id = d.get("id")
     product_name = d.get("product_name", "")
     ip = d.get("ip", "")
 
     # Only Smart plug
-    if not device_id or product_name != "Smart plug" or ip == "":
+    if not id or product_name != "Smart plug" or ip == "":
         print(f"[INFO] Skipping device (has no device id, ip, or not a Smart plug): {d.get('name', 'Unknown')}")
         continue
 
-    device_metrics[device_id] = {
+    device_metrics[id] = {
         "ip": d.get("ip", "0.0.0.0"),
         "name": d.get("name", "Unknown"),
         "current": float("nan"),
@@ -85,10 +82,10 @@ for d in DEVICE_CONFIGS:
 # DEVICE POLLING
 # =========================
 def update_device_metrics(device_config):
+    """Continuously fetch metrics for a device in the background."""
     id = device_config["id"]
     ip = device_config["ip"]
     name = device_config["name"]
-    key = device_config["key"]
     product_name = device_config.get("product_name", "")
 
     if product_name != "Smart plug":
@@ -96,26 +93,18 @@ def update_device_metrics(device_config):
     if ip == "":
         return
 
-    device = tinytuya.OutletDevice(id, ip, key)
-    device.set_socketTimeout(3)
-
-    # Определяем версию протокола
-    versions = [device_config.get("version")] if device_config.get("version") else [3.5, 3.4, 3.3]
-
     while True:
         try:
-            # Находим рабочую версию
-            connected = False
-            for version in versions:
+            device = tinytuya.OutletDevice(device_config["id"], device_config["ip"], device_config["key"])
+            device.set_socketTimeout(3)
+            for version in [3.5]:
                 try:
-                    device.set_version(float(version))
-                    # Обновляем DPS для получения актуальных данных
+                    device.set_version(version)
                     device.updatedps(["18", "19", "20"])
                     payload = device.generate_payload(tinytuya.UPDATEDPS)
                     device.send(payload)
-
                     data = device.status()
-                    if "Error" not in data and "dps" in data:
+                    if "Error" not in data:
                         device_metrics[id] = {
                             "ip": ip,
                             "name": name,
@@ -123,24 +112,20 @@ def update_device_metrics(device_config):
                             "power": float(data["dps"].get("19", 0)) / 10.0,
                             "voltage": float(data["dps"].get("20", 0)) / 10.0,
                         }
-                        connected = True
                         break
                 except Exception:
                     continue
-
-            if not connected:
+            else:
                 raise Exception(f"Failed to connect to device {id}")
-
         except Exception as e:
-            print(f"[{id}] error: {e}")
-            if id not in device_metrics:
-                device_metrics[id] = {}
-            device_metrics[id].update({
+            print(f"Error updating device {id}: {e}")
+            device_metrics[id] = {
+                "ip": ip,
+                "name": name,
                 "current": float("nan"),
                 "power": float("nan"),
                 "voltage": float("nan"),
-            })
-
+            }
         time.sleep(POLL_INTERVAL)
 
 def start_background_updater():
