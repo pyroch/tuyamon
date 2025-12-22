@@ -1,6 +1,5 @@
 import json
 import os
-import subprocess
 import sys
 import time
 import signal
@@ -14,34 +13,12 @@ from wsgiref.simple_server import make_server
 # CONFIG
 # =========================
 EXPORTER_PORT = 8757
-TINYTUTYA_CONFIG = "tinytuya.json"
 DEVICES_FILE = "devices.json"
 POLL_INTERVAL = 5  # seconds
 
 # =========================
-# RUN TINYTUYA WIZARD (AUTO)
-# =========================
-def run_wizard():
-    print("Running tinytuya wizard automatically...")
-
-    result = subprocess.run(
-        [sys.executable, '-m', 'tinytuya', 'wizard', '-force', '10.10.1.0/24', '-yes', '60'],
-        capture_output=True,
-        text=True
-    )
-    print(result.stdout)
-    print(result.stderr)
-
-    print("Wizard finished")
-
-# =========================
 # LOAD CONFIG / BOOTSTRAP
 # =========================
-if os.path.exists(TINYTUTYA_CONFIG):
-    # если devices.json нет — запускаем wizard
-    if not os.path.exists(DEVICES_FILE):
-        run_wizard()
-
 if not os.path.exists(DEVICES_FILE):
     raise RuntimeError("devices.json not found")
 
@@ -66,12 +43,12 @@ for d in DEVICE_CONFIGS:
     ip = d.get("ip", "")
 
     # Only Smart plug
-    if not id or product_name != "Smart plug" or ip == "":
+    if not id or not ip or product_name != "Smart plug":
         print(f"[INFO] Skipping device (has no device id, ip, or not a Smart plug): {d.get('name', 'Unknown')}")
         continue
 
     device_metrics[id] = {
-        "ip": d.get("ip", "0.0.0.0"),
+        "ip": d.get("ip"),
         "name": d.get("name", "Unknown"),
         "current": float("nan"),
         "power": float("nan"),
@@ -86,11 +63,9 @@ def update_device_metrics(device_config):
     id = device_config["id"]
     ip = device_config["ip"]
     name = device_config["name"]
-    product_name = device_config.get("product_name", "")
+    product_name = device_config.get("product_name")
 
-    if product_name != "Smart plug":
-        return
-    if ip == "":
+    if product_name != "Smart plug" or not ip:
         return
 
     while True:

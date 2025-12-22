@@ -1,9 +1,8 @@
 services:
   tuya-exporter:
-    image: tuyamon:latest
+    image: ghcr.io/pyroch/tuyamon:latest
     ports:
        - 8757:8757
     volumes:
-      #- ./tinytuya.json:/app/tinytuya.json # either this or devices.json
       - ./devices.json:/app/devices.json
     restart: always
