@@ -1,20 +1,21 @@
-# Базовый образ на основе Python 3.13.2
-FROM python:3.14.2-slim
+# Base python alpine image
+FROM python:alpine
 
-# Установка рабочей директории внутри контейнера
+# App working dir
 WORKDIR /app
 
-# Копирование файла зависимостей в контейнер
+# Move requirements to working dir
 COPY requirements.txt .
 
-# Установка зависимостей
+# Install requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование исходного кода приложения в контейнер
+# Copy main script to work dir
 COPY tuya_exporter.py .
 
+# Healthcheck for port 8757
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD /bin/bash -c "timeout 2 bash -c '</dev/tcp/localhost/8757'" || exit 1
 
-# Команда для запуска приложения
+# Run command
 CMD ["python", "-u", "tuya_exporter.py"]
