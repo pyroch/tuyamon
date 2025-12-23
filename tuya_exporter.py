@@ -4,6 +4,7 @@ import sys
 import time
 import signal
 from threading import Thread
+from logger import log
 
 import tinytuya
 from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST, CollectorRegistry
@@ -62,7 +63,7 @@ for d in DEVICE_CONFIGS:
     ip = d.get("ip", "")
 
     if not id or not ip or product_name != "Smart plug":
-        print(f"[INFO] Skipping device: {d.get('name', 'Unknown')}")
+        log(f"[INFO] Skipping device: {d.get('name', 'Unknown')}")
         continue
 
     device_metrics[id] = {
@@ -85,7 +86,7 @@ def update_device_metrics(device_config):
     if product_name != "Smart plug" or not ip:
         return
 
-    print(f"[INFO] Started polling thread for {name} ({ip})", flush=True)
+    log.info(f"[INFO] Started polling thread for {name} ({ip})")
 
     while True:
         success = False
@@ -120,13 +121,13 @@ def update_device_metrics(device_config):
                 break
 
             except Exception as e:
-                print(
+                log(
                     f"[WARN] {name} ({ip}) attempt {attempt}/{MAX_RETRIES} failed: {e}"
                 )
                 time.sleep(RETRY_DELAY)
 
         if not success:
-            print(f"[ERROR] {name} ({ip}) unreachable after {MAX_RETRIES} retries")
+            log(f"[ERROR] {name} ({ip}) unreachable after {MAX_RETRIES} retries")
             device_metrics[id] = {
                 "ip": ip,
                 "name": name,
@@ -174,14 +175,14 @@ def metrics_app(environ, start_response):
 # SIGNALS
 # =========================
 def handle_signal(signum, frame):
-    print("[INFO] Shutdown signal received")
+    log("[INFO] Shutdown signal received")
     sys.exit(0)
 
 # =========================
 # MAIN
 # =========================
 if __name__ == "__main__":
-    print(f"[INFO] Exporter running on http://localhost:{EXPORTER_PORT}/metrics")
+    log(f"[INFO] Exporter running on http://localhost:{EXPORTER_PORT}/metrics")
 
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
