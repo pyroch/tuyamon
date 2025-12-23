@@ -65,7 +65,7 @@ for d in DEVICE_CONFIGS:
     ip = d.get("ip", "")
 
     if not id or not ip or product_name != "Smart plug":
-        log(f"[INFO] Skipping device: {d.get('name', 'Unknown')}")
+        log.info(f"[INFO] Skipping device: {d.get('name', 'Unknown')}")
         continue
 
     device_metrics[id] = {
@@ -123,13 +123,13 @@ def update_device_metrics(device_config):
                 break
 
             except Exception as e:
-                log(
+                log.warning(
                     f"[WARN] {name} ({ip}) attempt {attempt}/{MAX_RETRIES} failed: {e}"
                 )
                 time.sleep(RETRY_DELAY)
 
         if not success:
-            log(f"[ERROR] {name} ({ip}) unreachable after {MAX_RETRIES} retries")
+            log.error(f"[ERROR] {name} ({ip}) unreachable after {MAX_RETRIES} retries")
             device_metrics[id] = {
                 "ip": ip,
                 "name": name,
@@ -177,14 +177,14 @@ def metrics_app(environ, start_response):
 # SIGNALS
 # =========================
 def handle_signal(signum, frame):
-    log("[INFO] Shutdown signal received")
+    log.info("[INFO] Shutdown signal received")
     sys.exit(0)
 
 # =========================
 # MAIN
 # =========================
 if __name__ == "__main__":
-    log(f"[INFO] Exporter running on http://localhost:{EXPORTER_PORT}/metrics")
+    log.info(f"[INFO] Exporter running on http://localhost:{EXPORTER_PORT}/metrics")
 
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
