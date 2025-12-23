@@ -80,6 +80,10 @@ def update_device_metrics(device_config):
     id = device_config["id"]
     ip = device_config["ip"]
     name = device_config["name"]
+    product_name = device_config.get("product_name")
+
+    if product_name != "Smart plug" or not ip:
+        return
 
     print(f"[INFO] Started polling thread for {name} ({ip})")
 
