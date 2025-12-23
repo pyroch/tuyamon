@@ -4,11 +4,13 @@ import sys
 import time
 import signal
 from threading import Thread
-from logger import log
+from logger import log, logging
 
 import tinytuya
 from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST, CollectorRegistry
 from wsgiref.simple_server import make_server
+
+log = logging.getLogger(__name__)
 
 # =========================
 # CONFIG
