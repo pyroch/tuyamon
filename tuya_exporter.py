@@ -65,7 +65,7 @@ for d in DEVICE_CONFIGS:
     ip = d.get("ip", "")
 
     if not id or not ip or product_name != "Smart plug":
-        log.info(f"[INFO] Skipping device: {d.get('name', 'Unknown')}")
+        log.info(f"Skipping device: {d.get('name', 'Unknown')}")
         continue
 
     device_metrics[id] = {
@@ -88,22 +88,23 @@ def update_device_metrics(device_config):
     if product_name != "Smart plug" or not ip:
         return
 
-    log.info(f"[INFO] Started polling thread for {name} ({ip})")
+    log.info(f"Started polling thread for {name} ({ip})")
+
+    device = tinytuya.OutletDevice(
+        device_config["id"],
+        device_config["ip"],
+        device_config["key"],
+    )
+    device.set_socketTimeout(SOCKET_TIMEOUT)
+    device.set_version(3.5)
 
     while True:
         success = False
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                device = tinytuya.OutletDevice(
-                    device_config["id"],
-                    device_config["ip"],
-                    device_config["key"],
-                )
-                device.set_socketTimeout(SOCKET_TIMEOUT)
-                device.set_version(3.5)
-
                 device.updatedps(["18", "19", "20"])
+
                 payload = device.generate_payload(tinytuya.UPDATEDPS)
                 device.send(payload)
 
@@ -124,12 +125,13 @@ def update_device_metrics(device_config):
 
             except Exception as e:
                 log.warning(
-                    f"[WARN] {name} ({ip}) attempt {attempt}/{MAX_RETRIES} failed: {e}"
+                    f"{name} ({ip}) attempt {attempt}/{MAX_RETRIES} failed: {e}"
                 )
-                time.sleep(RETRY_DELAY)
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_DELAY)
 
         if not success:
-            log.error(f"[ERROR] {name} ({ip}) unreachable after {MAX_RETRIES} retries")
+            log.error(f"{name} ({ip}) unreachable after {MAX_RETRIES} retries")
             device_metrics[id] = {
                 "ip": ip,
                 "name": name,
@@ -177,14 +179,14 @@ def metrics_app(environ, start_response):
 # SIGNALS
 # =========================
 def handle_signal(signum, frame):
-    log.info("[INFO] Shutdown signal received")
+    log.info("Shutdown signal received")
     sys.exit(0)
 
 # =========================
 # MAIN
 # =========================
 if __name__ == "__main__":
-    log.info(f"[INFO] Exporter running on http://localhost:{EXPORTER_PORT}/metrics")
+    log.info(f"Exporter running on http://localhost:{EXPORTER_PORT}/metrics")
 
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
