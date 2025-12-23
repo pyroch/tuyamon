@@ -11,10 +11,6 @@ jobs:
       packages: write
 
     steps:
-      - name: Install Docker
-        run: |
-          apk add docker-cli
-
       - name: Checkout
         uses: actions/checkout@v4
 
