@@ -17,7 +17,7 @@ DEVICES_FILE = "devices.json"
 
 POLL_INTERVAL = 5      # seconds between poolings
 MAX_RETRIES = 3        # retries after fail
-RETRY_DELAY = 2        # seconds between retries
+RETRY_DELAY = 1        # seconds between retries
 SOCKET_TIMEOUT = 3
 
 # =========================
@@ -85,7 +85,7 @@ def update_device_metrics(device_config):
     if product_name != "Smart plug" or not ip:
         return
 
-    print(f"[INFO] Started polling thread for {name} ({ip})")
+    print(f"[INFO] Started polling thread for {name} ({ip})", flush=True)
 
     while True:
         success = False
