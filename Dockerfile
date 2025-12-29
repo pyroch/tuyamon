@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY tuya_exporter.py .
 
 # Healthcheck for port 8757
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD /bin/bash -c "timeout 2 bash -c '</dev/tcp/localhost/8757'" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --quiet --spider --tries=1 --timeout=5 http://localhost:8757/metrics || exit 1
 
 # Run command
 CMD ["python", "-u", "tuya_exporter.py"]
